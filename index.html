@@ -9,7 +9,7 @@
         body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
         
         .tabs { display: flex; background: #111; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 200; }
-        .tab { flex: 1; padding: 15px; text-align: center; font-weight: bold; color: #888; cursor: pointer; border-bottom: 3px solid transparent; }
+        .tab { flex: 1; padding: 15px; text-align: center; font-weight: bold; color: #888; cursor: pointer; border-bottom: 3px solid transparent; font-size: 0.8em; }
         .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: #1a1a1a; }
 
         .container { padding: 10px; padding-bottom: 160px; }
@@ -65,6 +65,11 @@
         .status-msg { font-size: 0.85em; text-align: center; min-height: 1.2em; transition: transform 0.2s ease; }
         .text-ok { color: var(--confirm); }
         .text-error { color: var(--error); font-weight: bold; }
+
+        /* Help Section */
+        .help-item { margin-bottom: 20px; background: #1a1a1a; padding: 15px; border-radius: 10px; }
+        .help-title { color: var(--primary); font-weight: bold; margin-bottom: 5px; display: block; }
+        .help-text { font-size: 0.9em; color: #ccc; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -73,6 +78,7 @@
         <div id="tab-roster" class="tab active" onclick="switchTab('roster')">CHECK-IN</div>
         <div id="tab-game" class="tab" onclick="switchTab('game')">GAME</div>
         <div id="tab-summary" class="tab" onclick="switchTab('summary')">STATS</div>
+        <div id="tab-help" class="tab" onclick="switchTab('help')">HELP</div>
     </div>
 
     <div id="view-roster" class="container">
@@ -111,6 +117,35 @@
         <button class="btn-secondary" onclick="copyStats()" style="margin-top:15px; width:100%;">Copy Stats to Clipboard</button>
     </div>
 
+    <div id="view-help" class="container hidden">
+        <h3 style="color:var(--primary); margin:0 0 10px 0;">How to Use</h3>
+        
+        <div class="help-item">
+            <span class="help-title">1. Check-In</span>
+            <span class="help-text">Before the game starts, go to the CHECK-IN tab and toggle off any players who are not present. Only checked players will appear in the game rotation.</span>
+        </div>
+
+        <div class="help-item">
+            <span class="help-title">2. Starting the Game</span>
+            <span class="help-text">Tap 5 players to sub them in. Once they are highlighted on court, hit the green "SET ROSTER" button. Then press "START" on the timer.</span>
+        </div>
+
+        <div class="help-item">
+            <span class="help-title">3. Making Substitutions</span>
+            <span class="help-text">Tap a player on court to "sub out" and a player on the bench to "sub in." They will turn blue. Once you have exactly 5 players for the next shift, hit "SET ROSTER." The shift timer will automatically reset.</span>
+        </div>
+
+        <div class="help-item">
+            <span class="help-title">4. Fair Play Sorting</span>
+            <span class="help-text">The Bench is automatically sorted. Players with the least playing time and fewest shifts move to the top. The "Sat" timer shows how long they've been resting in game-time.</span>
+        </div>
+
+        <div class="help-item">
+            <span class="help-title">5. Post-Game Stats</span>
+            <span class="help-text">The STATS tab shows total playing time. Use +1m / -1m to adjust if you missed a sub. Use "Copy Stats" to save the data for your records.</span>
+        </div>
+    </div>
+
 <script>
     const NAMES = ["Adam", "Amara", "Avery", "Gregorio", "Jackson", "Jaxon", "Jayce", "Jodi", "Kainen", "Kenzo", "Luke", "Maddox", "Noah", "Pau", "Rafi", "Theo"];
     
@@ -134,8 +169,6 @@
 
     function toggleShiftTimer() { 
         const currentInGameCount = players.filter(p => p.onCourt).length;
-        
-        // If trying to start but not exactly 5 players
         if (!shiftTimerRunning && currentInGameCount !== 5) {
             const msgArea = document.getElementById('msg');
             msgArea.innerText = `⚠️ NEED 5 PLAYERS TO START (Current: ${currentInGameCount})`;
@@ -144,7 +177,6 @@
             setTimeout(() => { msgArea.style.transform = "scale(1)"; }, 200);
             return;
         }
-        
         shiftTimerRunning = !shiftTimerRunning; 
         document.getElementById('timer-toggle').innerText = shiftTimerRunning ? "PAUSE" : "START"; 
         render();
@@ -180,9 +212,7 @@
         let pendingCount = 0; let changeDetected = false;
         const currentInGameCount = players.filter(p => p.onCourt).length;
 
-        // Button text based on state
         timerToggleBtn.innerText = shiftTimerRunning ? "PAUSE" : "START";
-        timerToggleBtn.disabled = false; // Always enabled for user prompt
 
         const availableBench = players.filter(p => p.available && !p.onCourt).sort((a, b) => (a.shifts - b.shifts) || (a.totalSeconds - b.totalSeconds));
         players.forEach(p => { if (p.available && p.pendingStatus) pendingCount++; if (p.pendingStatus !== p.onCourt) changeDetected = true; });
@@ -203,7 +233,6 @@
         confirmBtn.style.display = changeDetected ? 'block' : 'none';
         confirmBtn.disabled = pendingCount !== 5;
 
-        // Update prompt message if not in error state from toggleShiftTimer
         const msgArea = document.getElementById('msg');
         if (!changeDetected && !msgArea.innerText.includes("NEED 5")) {
              msgArea.innerText = "Tap players to sub";
