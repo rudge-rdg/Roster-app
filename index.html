@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Coach's Rotation Pro</title>
+    <style>
+        :root { --primary: #ff6d00; --bg: #000000; --card: #1a1a1a; --text: #ffffff; --pending: #2979ff; --confirm: #4caf50; --error: #d32f2f; --bench: #9e9e9e; }
+        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
+        
+        .tabs { display: flex; background: #111; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 200; }
+        .tab { flex: 1; padding: 15px; text-align: center; font-weight: bold; color: #888; cursor: pointer; border-bottom: 3px solid transparent; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: #1a1a1a; }
+
+        .container { padding: 10px; padding-bottom: 160px; }
+        .hidden { display: none !important; }
+
+        .shift-timer-box { background: #222; border: 1px solid #333; border-radius: 10px; padding: 12px; margin-bottom: 10px; text-align: center; }
+        .shift-clock { font-family: monospace; font-size: 2.8em; font-weight: bold; color: var(--text); display: block; line-height: 1; margin-bottom: 5px; }
+        .shift-clock.expired { color: var(--error); animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        
+        .timer-controls { display: flex; justify-content: center; gap: 8px; align-items: center; }
+        .timer-btn { background: #444; color: white; border: none; padding: 6px 15px; border-radius: 6px; font-weight: bold; font-size: 0.9em; transition: all 0.2s; }
+        .timer-btn:active { transform: scale(0.95); background: #555; }
+        .time-input { background: #000; color: var(--primary); border: 1px solid #444; width: 45px; text-align: center; font-weight: bold; font-size: 1.2em; border-radius: 4px; }
+
+        .section-header { font-weight: bold; font-size: 0.8em; padding: 8px; background: #222; border-radius: 4px; margin: 12px 0 8px; color: #888; display: flex; justify-content: space-between; align-items: center; }
+        .player-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        
+        .player-card { background: var(--card); border: 1px solid #333; border-radius: 10px; padding: 8px; text-align: center; min-height: 115px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
+        .player-card.active { border: 2px solid var(--primary); background: #261a00; }
+        .player-card.pending-change { border: 2px solid var(--pending); box-shadow: 0 0 8px var(--pending); }
+        
+        .roster-card { background: var(--card); border: 1px solid #333; border-radius: 10px; padding: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .roster-card.present { border-left: 5px solid var(--confirm); }
+        .roster-card.absent { opacity: 0.4; border-left: 5px solid #444; }
+
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--confirm); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .name { font-weight: bold; font-size: 0.8em; color: #eee; }
+        .time { font-family: monospace; font-size: 1.1em; color: var(--primary); font-weight: bold; }
+        .bench-timer { font-size: 0.65em; color: var(--bench); font-family: monospace; }
+        
+        .shift-badge { background: #333; color: #fff; font-size: 1.2em; font-weight: 800; padding: 4px 12px; border-radius: 8px; margin-top: 5px; border: 2px solid #555; width: 80%; text-align: center; }
+        .has-played { border-color: var(--primary); color: var(--primary); }
+
+        .summary-box { background: #1a1a1a; padding: 15px; border-radius: 10px; border: 1px solid #333; margin-top: 10px; }
+        .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #222; }
+        .adj-group { display: flex; align-items: center; gap: 8px; }
+        .adj-btn { background: #333; color: white; border: 1px solid #444; border-radius: 4px; padding: 5px 10px; font-weight: bold; font-size: 0.8em; }
+        .stat-val { font-family: monospace; color: var(--primary); font-weight: bold; min-width: 50px; text-align: center; }
+
+        .controls { position: fixed; bottom: 0; left: 0; right: 0; background: #111; padding: 15px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 8px; z-index: 100; }
+        .btn-row { display: flex; gap: 8px; }
+        button { flex: 1; padding: 16px; border: none; border-radius: 8px; font-weight: bold; font-size: 1em; }
+        .btn-confirm { background: var(--confirm); color: white; display: none; }
+        .btn-secondary { background: #333; color: white; }
+        
+        .status-msg { font-size: 0.85em; text-align: center; min-height: 1.2em; transition: transform 0.2s ease; }
+        .text-ok { color: var(--confirm); }
+        .text-error { color: var(--error); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="tabs">
+        <div id="tab-roster" class="tab active" onclick="switchTab('roster')">CHECK-IN</div>
+        <div id="tab-game" class="tab" onclick="switchTab('game')">GAME</div>
+        <div id="tab-summary" class="tab" onclick="switchTab('summary')">STATS</div>
+    </div>
+
+    <div id="view-roster" class="container">
+        <h3 style="color:var(--primary); margin:0 0 10px 0;">Available Today?</h3>
+        <div id="roster-check-list"></div>
+    </div>
+
+    <div id="view-game" class="container hidden">
+        <div class="shift-timer-box">
+            <span id="shift-clock" class="shift-clock">05:00</span>
+            <div class="timer-controls">
+                <input id="set-min" type="number" class="time-input" value="5">
+                <button class="timer-btn" onclick="toggleShiftTimer()" id="timer-toggle">START</button>
+                <button class="timer-btn" onclick="resetShiftTimer()">↺</button>
+            </div>
+        </div>
+        <div class="section-header">ON COURT <span id="court-count">0/5</span></div>
+        <div id="court-list" class="player-list"></div>
+        <div class="section-header">BENCH (SORTED BY PLAY TIME)</div>
+        <div id="bench-list" class="player-list"></div>
+
+        <div class="controls">
+            <div id="msg" class="status-msg">Tap players to sub</div>
+            <button id="confirm-btn" class="btn-confirm" onclick="confirmSubs()">SET ROSTER & RESET TIMER</button>
+            <div class="btn-row">
+                <button class="btn-secondary" onclick="undoSelection()" style="color:var(--pending)">Undo</button>
+                <button class="btn-secondary" onclick="resetStats()" style="color:var(--error)">Reset Game</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-summary" class="container hidden">
+        <h3 style="color:var(--primary); margin:0 0 10px 0;">Game Summary</h3>
+        <p id="target-time-msg" style="font-size:0.75em; color:var(--confirm); margin-bottom:5px;"></p>
+        <div id="summary-content" class="summary-box"></div>
+        <button class="btn-secondary" onclick="copyStats()" style="margin-top:15px; width:100%;">Copy Stats to Clipboard</button>
+    </div>
+
+<script>
+    const NAMES = ["Adam", "Amara", "Avery", "Gregorio", "Jackson", "Jaxon", "Jayce", "Jodi", "Kainen", "Kenzo", "Luke", "Maddox", "Noah", "Pau", "Rafi", "Theo"];
+    
+    let players = NAMES.map((name, i) => ({ 
+        id: i, name: name, onCourt: false, pendingStatus: false, totalSeconds: 0, shifts: 0, 
+        startTime: null, available: true, secondsSat: 0 
+    }));
+
+    let shiftSecondsRemaining = 300;
+    let shiftTimerRunning = false;
+    let totalGameSeconds = 0;
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        document.getElementById(`view-${tab}`).classList.remove('hidden');
+        if (tab === 'summary') renderSummary();
+        render();
+    }
+
+    function toggleShiftTimer() { 
+        const currentInGameCount = players.filter(p => p.onCourt).length;
+        
+        // If trying to start but not exactly 5 players
+        if (!shiftTimerRunning && currentInGameCount !== 5) {
+            const msgArea = document.getElementById('msg');
+            msgArea.innerText = `⚠️ NEED 5 PLAYERS TO START (Current: ${currentInGameCount})`;
+            msgArea.className = "status-msg text-error";
+            msgArea.style.transform = "scale(1.1)";
+            setTimeout(() => { msgArea.style.transform = "scale(1)"; }, 200);
+            return;
+        }
+        
+        shiftTimerRunning = !shiftTimerRunning; 
+        document.getElementById('timer-toggle').innerText = shiftTimerRunning ? "PAUSE" : "START"; 
+        render();
+    }
+
+    function resetShiftTimer() { 
+        shiftSecondsRemaining = document.getElementById('set-min').value * 60; 
+        updateTimerDisplay(); 
+    }
+
+    function updateTimerDisplay() { 
+        const clock = document.getElementById('shift-clock');
+        clock.innerText = formatTime(Math.abs(shiftSecondsRemaining));
+        shiftSecondsRemaining <= 0 ? clock.classList.add('expired') : clock.classList.remove('expired');
+    }
+
+    function render() {
+        const rosterList = document.getElementById('roster-check-list');
+        rosterList.innerHTML = '';
+        players.forEach(p => {
+            const div = document.createElement('div');
+            div.className = `roster-card ${p.available ? 'present' : 'absent'}`;
+            div.innerHTML = `<span>${p.name}</span><label class="switch"><input type="checkbox" ${p.available ? 'checked' : ''} onchange="toggleAvailability(${p.id})"><span class="slider"></span></label>`;
+            rosterList.appendChild(div);
+        });
+
+        const courtList = document.getElementById('court-list');
+        const benchList = document.getElementById('bench-list');
+        const confirmBtn = document.getElementById('confirm-btn');
+        const timerToggleBtn = document.getElementById('timer-toggle');
+        
+        courtList.innerHTML = ''; benchList.innerHTML = '';
+        let pendingCount = 0; let changeDetected = false;
+        const currentInGameCount = players.filter(p => p.onCourt).length;
+
+        // Button text based on state
+        timerToggleBtn.innerText = shiftTimerRunning ? "PAUSE" : "START";
+        timerToggleBtn.disabled = false; // Always enabled for user prompt
+
+        const availableBench = players.filter(p => p.available && !p.onCourt).sort((a, b) => (a.shifts - b.shifts) || (a.totalSeconds - b.totalSeconds));
+        players.forEach(p => { if (p.available && p.pendingStatus) pendingCount++; if (p.pendingStatus !== p.onCourt) changeDetected = true; });
+        
+        players.filter(p => p.onCourt).forEach(p => createCard(p, courtList));
+        availableBench.forEach(p => createCard(p, benchList));
+
+        function createCard(p, container) {
+            const card = document.createElement('div');
+            card.className = `player-card ${p.onCourt ? 'active' : ''} ${p.pendingStatus !== p.onCourt ? 'pending-change' : ''}`;
+            card.onclick = () => { p.pendingStatus = !p.pendingStatus; render(); };
+            const elapsed = p.onCourt ? Math.floor((Date.now() - p.startTime) / 1000) : 0;
+            card.innerHTML = `<span class="name">${p.name}</span><div class="time">${formatTime(p.totalSeconds + elapsed)}</div>${!p.onCourt ? `<div class="bench-timer">Sat: ${formatTime(p.secondsSat)}</div>` : ''}<div class="shift-badge ${p.shifts > 0 ? 'has-played' : ''}">${p.shifts}</div>`;
+            container.appendChild(card);
+        }
+
+        document.getElementById('court-count').innerText = `${currentInGameCount}/5`;
+        confirmBtn.style.display = changeDetected ? 'block' : 'none';
+        confirmBtn.disabled = pendingCount !== 5;
+
+        // Update prompt message if not in error state from toggleShiftTimer
+        const msgArea = document.getElementById('msg');
+        if (!changeDetected && !msgArea.innerText.includes("NEED 5")) {
+             msgArea.innerText = "Tap players to sub";
+             msgArea.className = "status-msg";
+        } else if (changeDetected) {
+             msgArea.innerText = pendingCount === 5 ? "Valid Rotation" : `Select 5 players (Currently: ${pendingCount})`;
+             msgArea.className = "status-msg " + (pendingCount === 5 ? "text-ok" : "text-error");
+        }
+    }
+
+    function renderSummary() {
+        const content = document.getElementById('summary-content');
+        const targetMsg = document.getElementById('target-time-msg');
+        content.innerHTML = '';
+        const availableCount = players.filter(p => p.available).length;
+        if (availableCount > 0) {
+            const avgTime = Math.floor(totalGameSeconds * 5 / availableCount);
+            targetMsg.innerText = `Target Time for Fair Play: ${formatTime(avgTime)} per player`;
+        }
+        [...players].sort((a,b) => b.totalSeconds - a.totalSeconds).forEach(p => {
+            const elapsed = p.onCourt ? Math.floor((Date.now() - p.startTime) / 1000) : 0;
+            const div = document.createElement('div');
+            div.className = 'summary-row';
+            div.innerHTML = `<span class="name">${p.name}</span><div class="adj-group"><button class="adj-btn" onclick="adjustTime(${p.id}, -60)">-1m</button><span class="stat-val">${formatTime(p.totalSeconds + elapsed)}</span><button class="adj-btn" onclick="adjustTime(${p.id}, 60)">+1m</button></div>`;
+            content.appendChild(div);
+        });
+    }
+
+    function adjustTime(id, delta) {
+        const p = players.find(x => x.id === id);
+        p.totalSeconds = Math.max(0, p.totalSeconds + delta);
+        renderSummary(); render();
+    }
+
+    function copyStats() {
+        let text = "Game Stats:\n";
+        [...players].sort((a,b) => b.totalSeconds - a.totalSeconds).forEach(p => {
+            const elapsed = p.onCourt ? Math.floor((Date.now() - p.startTime) / 1000) : 0;
+            text += `${p.name}: ${formatTime(p.totalSeconds + elapsed)} (${p.shifts} shifts)\n`;
+        });
+        navigator.clipboard.writeText(text);
+        alert("Stats copied!");
+    }
+
+    function toggleAvailability(id) {
+        const p = players.find(x => x.id === id); p.available = !p.available;
+        if (!p.available && p.onCourt) { 
+            p.totalSeconds += Math.floor((Date.now() - p.startTime) / 1000); 
+            p.onCourt = false; p.pendingStatus = false; p.startTime = null; p.secondsSat = 0;
+        }
+        render();
+    }
+
+    function confirmSubs() {
+        players.forEach(p => {
+            if (p.pendingStatus && !p.onCourt) { p.onCourt = true; p.startTime = Date.now(); p.shifts++; } 
+            else if (!p.pendingStatus && p.onCourt) { p.totalSeconds += Math.floor((Date.now() - p.startTime) / 1000); p.onCourt = false; p.startTime = null; p.secondsSat = 0; }
+        });
+        resetShiftTimer(); render();
+    }
+
+    function undoSelection() { players.forEach(p => p.pendingStatus = p.onCourt); render(); }
+    function formatTime(sec) { const m = Math.floor(sec / 60); const s = sec % 60; return `${m}:${s.toString().padStart(2, '0')}`; }
+    
+    function resetStats() { 
+        if(confirm("Clear game data?")) { 
+            players.forEach(p => { p.onCourt = false; p.pendingStatus = false; p.totalSeconds = 0; p.shifts = 0; p.startTime = null; p.secondsSat = 0; }); 
+            totalGameSeconds = 0; shiftTimerRunning = false; resetShiftTimer(); render(); 
+        } 
+    }
+
+    setInterval(() => { 
+        if (shiftTimerRunning) { 
+            shiftSecondsRemaining--; totalGameSeconds++;
+            players.forEach(p => { if (!p.onCourt && p.available) p.secondsSat++; });
+            updateTimerDisplay(); 
+        } 
+        render(); 
+    }, 1000);
+    
+    render();
+</script>
+</body>
+</html>
