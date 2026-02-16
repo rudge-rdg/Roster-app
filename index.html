@@ -3,73 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Coach's Rotation Pro</title>
+    <title>Chargers C Team - Rotation Tracker</title>
     <style>
         :root { --primary: #ff6d00; --bg: #000000; --card: #1a1a1a; --text: #ffffff; --pending: #2979ff; --confirm: #4caf50; --error: #d32f2f; --bench: #9e9e9e; }
         body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
         
         .tabs { display: flex; background: #111; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 200; }
-        .tab { flex: 1; padding: 15px; text-align: center; font-weight: bold; color: #888; cursor: pointer; border-bottom: 3px solid transparent; font-size: 0.8em; }
+        .tab { flex: 1; padding: 12px 5px; text-align: center; font-weight: bold; color: #888; cursor: pointer; border-bottom: 3px solid transparent; font-size: 0.75em; }
         .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: #1a1a1a; }
 
-        .container { padding: 10px; padding-bottom: 160px; }
+        .container { padding: 8px; padding-bottom: 140px; }
         .hidden { display: none !important; }
 
-        .shift-timer-box { background: #222; border: 1px solid #333; border-radius: 10px; padding: 12px; margin-bottom: 10px; text-align: center; }
-        .shift-clock { font-family: monospace; font-size: 2.8em; font-weight: bold; color: var(--text); display: block; line-height: 1; margin-bottom: 5px; }
+        .shift-timer-box { background: #222; border: 1px solid #333; border-radius: 10px; padding: 8px; margin-bottom: 8px; text-align: center; }
+        .total-game-time { font-size: 0.75em; color: #888; font-weight: bold; margin-bottom: 2px; display: block; }
+        
+        /* Shift Label next to clock */
+        .shift-display { display: flex; align-items: center; justify-content: center; gap: 10px; line-height: 1; margin-bottom: 4px; }
+        .timer-label { font-size: 0.8em; color: #888; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; }
+        .shift-clock { font-family: monospace; font-size: 2.4em; font-weight: bold; color: var(--text); }
         .shift-clock.expired { color: var(--error); animation: blink 1s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
         
-        .timer-controls { display: flex; justify-content: center; gap: 8px; align-items: center; }
-        .timer-btn { background: #444; color: white; border: none; padding: 6px 15px; border-radius: 6px; font-weight: bold; font-size: 0.9em; transition: all 0.2s; }
-        .timer-btn:active { transform: scale(0.95); background: #555; }
-        .time-input { background: #000; color: var(--primary); border: 1px solid #444; width: 45px; text-align: center; font-weight: bold; font-size: 1.2em; border-radius: 4px; }
+        .timer-controls { display: flex; justify-content: center; gap: 6px; align-items: center; }
+        .timer-btn { background: #444; color: white; border: none; padding: 5px 12px; border-radius: 6px; font-weight: bold; font-size: 0.85em; }
+        .time-input { background: #000; color: var(--primary); border: 1px solid #444; width: 38px; text-align: center; font-weight: bold; font-size: 1.1em; border-radius: 4px; }
 
-        .section-header { font-weight: bold; font-size: 0.8em; padding: 8px; background: #222; border-radius: 4px; margin: 12px 0 8px; color: #888; display: flex; justify-content: space-between; align-items: center; }
-        .player-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .section-header { font-weight: bold; font-size: 0.75em; padding: 6px; background: #222; border-radius: 4px; margin: 8px 0 4px; color: #888; display: flex; justify-content: space-between; align-items: center; }
+        .player-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
         
-        .player-card { background: var(--card); border: 1px solid #333; border-radius: 10px; padding: 8px; text-align: center; min-height: 115px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
+        /* Compact Player Card */
+        .player-card { background: var(--card); border: 1px solid #333; border-radius: 8px; padding: 6px 4px; text-align: center; min-height: 85px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
         .player-card.active { border: 2px solid var(--primary); background: #261a00; }
         .player-card.pending-change { border: 2px solid var(--pending); box-shadow: 0 0 8px var(--pending); }
         
-        .roster-card { background: var(--card); border: 1px solid #333; border-radius: 10px; padding: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .roster-card { background: var(--card); border: 1px solid #333; border-radius: 10px; padding: 12px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
         .roster-card.present { border-left: 5px solid var(--confirm); }
         .roster-card.absent { opacity: 0.4; border-left: 5px solid #444; }
 
-        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--confirm); }
-        input:checked + .slider:before { transform: translateX(22px); }
+        input:checked + .slider:before { transform: translateX(20px); }
 
-        .name { font-weight: bold; font-size: 0.8em; color: #eee; }
-        .time { font-family: monospace; font-size: 1.1em; color: var(--primary); font-weight: bold; }
-        .bench-timer { font-size: 0.65em; color: var(--bench); font-family: monospace; }
+        /* Bigger Names */
+        .name { font-weight: bold; font-size: 1.1em; color: #fff; margin-bottom: 2px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+        .time { font-family: monospace; font-size: 0.9em; color: var(--primary); font-weight: bold; }
+        .bench-timer { font-size: 0.6em; color: var(--bench); font-family: monospace; }
         
-        .shift-badge { background: #333; color: #fff; font-size: 1.2em; font-weight: 800; padding: 4px 12px; border-radius: 8px; margin-top: 5px; border: 2px solid #555; width: 80%; text-align: center; }
+        .shift-badge { background: #333; color: #fff; font-size: 0.9em; font-weight: 800; padding: 2px 0; border-radius: 6px; margin-top: 3px; border: 1px solid #555; width: 85%; text-align: center; }
         .has-played { border-color: var(--primary); color: var(--primary); }
 
-        .summary-box { background: #1a1a1a; padding: 15px; border-radius: 10px; border: 1px solid #333; margin-top: 10px; }
-        .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #222; }
-        .adj-group { display: flex; align-items: center; gap: 8px; }
-        .adj-btn { background: #333; color: white; border: 1px solid #444; border-radius: 4px; padding: 5px 10px; font-weight: bold; font-size: 0.8em; }
-        .stat-val { font-family: monospace; color: var(--primary); font-weight: bold; min-width: 50px; text-align: center; }
+        .summary-box { background: #1a1a1a; padding: 12px; border-radius: 10px; border: 1px solid #333; margin-top: 10px; }
+        .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #222; }
+        .adj-group { display: flex; align-items: center; gap: 6px; }
+        .adj-btn { background: #333; color: white; border: 1px solid #444; border-radius: 4px; padding: 4px 8px; font-weight: bold; font-size: 0.75em; }
+        .stat-val { font-family: monospace; color: var(--primary); font-weight: bold; min-width: 45px; text-align: center; font-size: 0.9em; }
 
-        .controls { position: fixed; bottom: 0; left: 0; right: 0; background: #111; padding: 15px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 8px; z-index: 100; }
-        .btn-row { display: flex; gap: 8px; }
-        button { flex: 1; padding: 16px; border: none; border-radius: 8px; font-weight: bold; font-size: 1em; }
+        .controls { position: fixed; bottom: 0; left: 0; right: 0; background: #111; padding: 12px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 6px; z-index: 100; }
+        .btn-row { display: flex; gap: 6px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95em; }
         .btn-confirm { background: var(--confirm); color: white; display: none; }
-        .btn-secondary { background: #333; color: white; }
+        .btn-start-game { background: var(--confirm); color: white; display: block; }
+        .btn-start-game:disabled { background: #333; color: #666; }
+        .btn-secondary { background: #333; color: white; padding: 10px; }
         
-        .status-msg { font-size: 0.85em; text-align: center; min-height: 1.2em; transition: transform 0.2s ease; }
+        .status-msg { font-size: 0.8em; text-align: center; min-height: 1.1em; transition: transform 0.2s ease; }
         .text-ok { color: var(--confirm); }
         .text-error { color: var(--error); font-weight: bold; }
 
-        /* Help Section */
-        .help-item { margin-bottom: 20px; background: #1a1a1a; padding: 15px; border-radius: 10px; }
-        .help-title { color: var(--primary); font-weight: bold; margin-bottom: 5px; display: block; }
-        .help-text { font-size: 0.9em; color: #ccc; line-height: 1.4; }
+        .help-item { margin-bottom: 15px; background: #1a1a1a; padding: 12px; border-radius: 10px; }
+        .help-title { color: var(--primary); font-weight: bold; margin-bottom: 4px; display: block; font-size: 0.9em; }
+        .help-text { font-size: 0.85em; color: #ccc; line-height: 1.3; }
     </style>
 </head>
 <body>
@@ -82,67 +89,72 @@
     </div>
 
     <div id="view-roster" class="container">
-        <h3 style="color:var(--primary); margin:0 0 10px 0;">Available Today?</h3>
+        <h3 style="color:var(--primary); margin:0 0 10px 0; font-size: 1.1em;">Available?</h3>
         <div id="roster-check-list"></div>
     </div>
 
     <div id="view-game" class="container hidden">
-        <div class="shift-timer-box">
-            <span id="shift-clock" class="shift-clock">05:00</span>
-            <div class="timer-controls">
-                <input id="set-min" type="number" class="time-input" value="5">
-                <button class="timer-btn" onclick="toggleShiftTimer()" id="timer-toggle">START</button>
-                <button class="timer-btn" onclick="resetShiftTimer()">↺</button>
+        <div id="game-active-timer" class="hidden">
+            <div class="shift-timer-box">
+                <span id="total-game-clock" class="total-game-time">Total: 00:00</span>
+                <div class="shift-display">
+                    <span class="timer-label">Shift</span>
+                    <span id="shift-clock" class="shift-clock">05:00</span>
+                </div>
+                <div class="timer-controls">
+                    <input id="set-min" type="number" class="time-input" value="5">
+                    <button class="timer-btn" onclick="toggleShiftTimer()" id="timer-toggle">START</button>
+                    <button class="timer-btn" onclick="resetShiftTimer()">↺</button>
+                </div>
             </div>
         </div>
+
+        <div id="pre-game-header">
+            <h3 style="color:var(--primary); text-align:center; margin-bottom:4px; font-size: 1.1em;">Chargers C Team</h3>
+            <p style="text-align:center; font-size:0.75em; color:#888; margin-bottom:10px;">Select Starting 5</p>
+        </div>
+
         <div class="section-header">ON COURT <span id="court-count">0/5</span></div>
         <div id="court-list" class="player-list"></div>
-        <div class="section-header">BENCH (SORTED BY PLAY TIME)</div>
+        <div class="section-header" id="bench-header">BENCH</div>
         <div id="bench-list" class="player-list"></div>
 
         <div class="controls">
             <div id="msg" class="status-msg">Tap players to sub</div>
             <button id="confirm-btn" class="btn-confirm" onclick="confirmSubs()">SET ROSTER & RESET TIMER</button>
+            <button id="start-game-btn" class="btn-start-game" onclick="startGame()">START GAME</button>
             <div class="btn-row">
                 <button class="btn-secondary" onclick="undoSelection()" style="color:var(--pending)">Undo</button>
-                <button class="btn-secondary" onclick="resetStats()" style="color:var(--error)">Reset Game</button>
+                <button class="btn-secondary" onclick="resetStats()" style="color:var(--error)">Reset</button>
             </div>
         </div>
     </div>
 
     <div id="view-summary" class="container hidden">
-        <h3 style="color:var(--primary); margin:0 0 10px 0;">Game Summary</h3>
-        <p id="target-time-msg" style="font-size:0.75em; color:var(--confirm); margin-bottom:5px;"></p>
+        <h3 style="color:var(--primary); margin:0 0 10px 0; font-size: 1.1em;">Game Summary</h3>
+        <p id="target-time-msg" style="font-size:0.7em; color:var(--confirm); margin-bottom:5px;"></p>
         <div id="summary-content" class="summary-box"></div>
         <button class="btn-secondary" onclick="copyStats()" style="margin-top:15px; width:100%;">Copy Stats to Clipboard</button>
     </div>
 
     <div id="view-help" class="container hidden">
-        <h3 style="color:var(--primary); margin:0 0 10px 0;">How to Use</h3>
+        <h3 style="color:var(--primary); margin:0 0 10px 0; font-size: 1.1em;">Guide</h3>
         
         <div class="help-item">
             <span class="help-title">1. Check-In</span>
-            <span class="help-text">Before the game starts, go to the CHECK-IN tab and toggle off any players who are not present. Only checked players will appear in the game rotation.</span>
+            <span class="help-text">Toggle off missing players.</span>
         </div>
-
         <div class="help-item">
-            <span class="help-title">2. Starting the Game</span>
-            <span class="help-text">Tap 5 players to sub them in. Once they are highlighted on court, hit the green "SET ROSTER" button. Then press "START" on the timer.</span>
+            <span class="help-title">2. Start Game</span>
+            <span class="help-text">Select 5 starters (blue) and hit "START GAME."</span>
         </div>
-
         <div class="help-item">
-            <span class="help-title">3. Making Substitutions</span>
-            <span class="help-text">Tap a player on court to "sub out" and a player on the bench to "sub in." They will turn blue. Once you have exactly 5 players for the next shift, hit "SET ROSTER." The shift timer will automatically reset.</span>
+            <span class="help-title">3. Subs</span>
+            <span class="help-text">Tap players to swap. Blue indicates a change. Press "SET ROSTER" to lock in the swap.</span>
         </div>
-
         <div class="help-item">
-            <span class="help-title">4. Fair Play Sorting</span>
-            <span class="help-text">The Bench is automatically sorted. Players with the least playing time and fewest shifts move to the top. The "Sat" timer shows how long they've been resting in game-time.</span>
-        </div>
-
-        <div class="help-item">
-            <span class="help-title">5. Post-Game Stats</span>
-            <span class="help-text">The STATS tab shows total playing time. Use +1m / -1m to adjust if you missed a sub. Use "Copy Stats" to save the data for your records.</span>
+            <span class="help-title">4. Bench Sorting</span>
+            <span class="help-text">Bench sorts automatically: players with least time and longest rest move to top.</span>
         </div>
     </div>
 
@@ -157,6 +169,7 @@
     let shiftSecondsRemaining = 300;
     let shiftTimerRunning = false;
     let totalGameSeconds = 0;
+    let gameStarted = false;
 
     function switchTab(tab) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -168,15 +181,16 @@
     }
 
     function toggleShiftTimer() { 
+        if (!gameStarted) return;
         const currentInGameCount = players.filter(p => p.onCourt).length;
+        
         if (!shiftTimerRunning && currentInGameCount !== 5) {
             const msgArea = document.getElementById('msg');
-            msgArea.innerText = `⚠️ NEED 5 PLAYERS TO START (Current: ${currentInGameCount})`;
+            msgArea.innerText = `⚠️ NEED 5 PLAYERS (Current: ${currentInGameCount})`;
             msgArea.className = "status-msg text-error";
-            msgArea.style.transform = "scale(1.1)";
-            setTimeout(() => { msgArea.style.transform = "scale(1)"; }, 200);
             return;
         }
+        
         shiftTimerRunning = !shiftTimerRunning; 
         document.getElementById('timer-toggle').innerText = shiftTimerRunning ? "PAUSE" : "START"; 
         render();
@@ -189,57 +203,112 @@
 
     function updateTimerDisplay() { 
         const clock = document.getElementById('shift-clock');
+        const totalClock = document.getElementById('total-game-clock');
         clock.innerText = formatTime(Math.abs(shiftSecondsRemaining));
+        totalClock.innerText = "Total: " + formatTime(totalGameSeconds);
         shiftSecondsRemaining <= 0 ? clock.classList.add('expired') : clock.classList.remove('expired');
+    }
+
+    function startGame() {
+        const pendingInCount = players.filter(p => p.pendingStatus && p.available).length;
+        if (pendingInCount !== 5) return;
+
+        players.forEach(p => {
+            if (p.pendingStatus && p.available) {
+                p.onCourt = true;
+                p.startTime = Date.now();
+                p.shifts = 1;
+            } else {
+                p.onCourt = false;
+                p.startTime = null;
+                p.shifts = 0;
+            }
+        });
+
+        gameStarted = true;
+        shiftTimerRunning = true; 
+        render();
     }
 
     function render() {
         const rosterList = document.getElementById('roster-check-list');
-        rosterList.innerHTML = '';
-        players.forEach(p => {
-            const div = document.createElement('div');
-            div.className = `roster-card ${p.available ? 'present' : 'absent'}`;
-            div.innerHTML = `<span>${p.name}</span><label class="switch"><input type="checkbox" ${p.available ? 'checked' : ''} onchange="toggleAvailability(${p.id})"><span class="slider"></span></label>`;
-            rosterList.appendChild(div);
-        });
+        if (rosterList) {
+            rosterList.innerHTML = '';
+            players.forEach(p => {
+                const div = document.createElement('div');
+                div.className = `roster-card ${p.available ? 'present' : 'absent'}`;
+                div.innerHTML = `<span>${p.name}</span><label class="switch"><input type="checkbox" ${p.available ? 'checked' : ''} onchange="toggleAvailability(${p.id})"><span class="slider"></span></label>`;
+                rosterList.appendChild(div);
+            });
+        }
 
+        const timerBox = document.getElementById('game-active-timer');
+        const preGameHeader = document.getElementById('pre-game-header');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const confirmBtn = document.getElementById('confirm-btn');
         const courtList = document.getElementById('court-list');
         const benchList = document.getElementById('bench-list');
-        const confirmBtn = document.getElementById('confirm-btn');
         const timerToggleBtn = document.getElementById('timer-toggle');
+        const msgArea = document.getElementById('msg');
         
+        if (gameStarted) {
+            timerBox.classList.remove('hidden');
+            preGameHeader.classList.add('hidden');
+            startGameBtn.classList.add('hidden');
+            confirmBtn.classList.remove('hidden');
+            timerToggleBtn.innerText = shiftTimerRunning ? "PAUSE" : "START";
+        } else {
+            timerBox.classList.add('hidden');
+            preGameHeader.classList.remove('hidden');
+            startGameBtn.classList.remove('hidden');
+            confirmBtn.classList.add('hidden');
+        }
+
         courtList.innerHTML = ''; benchList.innerHTML = '';
-        let pendingCount = 0; let changeDetected = false;
-        const currentInGameCount = players.filter(p => p.onCourt).length;
+        let currentInGameCount = 0;
+        let pendingSelectionCount = 0;
+        let changeDetected = false;
 
-        timerToggleBtn.innerText = shiftTimerRunning ? "PAUSE" : "START";
+        players.forEach(p => {
+            if (p.onCourt) currentInGameCount++;
+            if (p.available && p.pendingStatus) pendingSelectionCount++;
+            if (p.pendingStatus !== p.onCourt) changeDetected = true;
+        });
 
-        const availableBench = players.filter(p => p.available && !p.onCourt).sort((a, b) => (a.shifts - b.shifts) || (a.totalSeconds - b.totalSeconds));
-        players.forEach(p => { if (p.available && p.pendingStatus) pendingCount++; if (p.pendingStatus !== p.onCourt) changeDetected = true; });
-        
+        const displayBench = players.filter(p => p.available && !p.onCourt).sort((a, b) => {
+            if (!gameStarted) return a.name.localeCompare(b.name);
+            return (a.shifts - b.shifts) || (a.totalSeconds - b.totalSeconds);
+        });
+
         players.filter(p => p.onCourt).forEach(p => createCard(p, courtList));
-        availableBench.forEach(p => createCard(p, benchList));
+        displayBench.forEach(p => createCard(p, benchList));
 
         function createCard(p, container) {
             const card = document.createElement('div');
-            card.className = `player-card ${p.onCourt ? 'active' : ''} ${p.pendingStatus !== p.onCourt ? 'pending-change' : ''}`;
+            const isPendingChange = p.pendingStatus !== p.onCourt;
+            card.className = `player-card ${p.onCourt ? 'active' : ''} ${isPendingChange ? 'pending-change' : ''}`;
             card.onclick = () => { p.pendingStatus = !p.pendingStatus; render(); };
             const elapsed = p.onCourt ? Math.floor((Date.now() - p.startTime) / 1000) : 0;
-            card.innerHTML = `<span class="name">${p.name}</span><div class="time">${formatTime(p.totalSeconds + elapsed)}</div>${!p.onCourt ? `<div class="bench-timer">Sat: ${formatTime(p.secondsSat)}</div>` : ''}<div class="shift-badge ${p.shifts > 0 ? 'has-played' : ''}">${p.shifts}</div>`;
+            card.innerHTML = `<span class="name">${p.name}</span><div class="time">${formatTime(p.totalSeconds + elapsed)}</div>${(!p.onCourt && gameStarted) ? `<div class="bench-timer">Sat: ${formatTime(p.secondsSat)}</div>` : ''}<div class="shift-badge ${p.shifts > 0 ? 'has-played' : ''}">${p.shifts}</div>`;
             container.appendChild(card);
         }
 
-        document.getElementById('court-count').innerText = `${currentInGameCount}/5`;
-        confirmBtn.style.display = changeDetected ? 'block' : 'none';
-        confirmBtn.disabled = pendingCount !== 5;
-
-        const msgArea = document.getElementById('msg');
-        if (!changeDetected && !msgArea.innerText.includes("NEED 5")) {
-             msgArea.innerText = "Tap players to sub";
-             msgArea.className = "status-msg";
-        } else if (changeDetected) {
-             msgArea.innerText = pendingCount === 5 ? "Valid Rotation" : `Select 5 players (Currently: ${pendingCount})`;
-             msgArea.className = "status-msg " + (pendingCount === 5 ? "text-ok" : "text-error");
+        document.getElementById('court-count').innerText = `${gameStarted ? currentInGameCount : pendingSelectionCount}/5`;
+        
+        if (gameStarted) {
+            confirmBtn.style.display = changeDetected ? 'block' : 'none';
+            confirmBtn.disabled = pendingSelectionCount !== 5;
+            if (changeDetected) {
+                msgArea.innerText = pendingSelectionCount === 5 ? "Rotation OK" : `${pendingSelectionCount}/5`;
+                msgArea.className = "status-msg " + (pendingSelectionCount === 5 ? "text-ok" : "text-error");
+            } else {
+                msgArea.innerText = "Tap players to sub";
+                msgArea.className = "status-msg";
+            }
+        } else {
+            startGameBtn.disabled = pendingSelectionCount !== 5;
+            msgArea.innerText = pendingSelectionCount === 5 ? "Ready!" : `${pendingSelectionCount}/5 selected`;
+            msgArea.className = "status-msg " + (pendingSelectionCount === 5 ? "text-ok" : "text-error");
         }
     }
 
@@ -250,7 +319,7 @@
         const availableCount = players.filter(p => p.available).length;
         if (availableCount > 0) {
             const avgTime = Math.floor(totalGameSeconds * 5 / availableCount);
-            targetMsg.innerText = `Target Time for Fair Play: ${formatTime(avgTime)} per player`;
+            targetMsg.innerText = `Target Time: ${formatTime(avgTime)}`;
         }
         [...players].sort((a,b) => b.totalSeconds - a.totalSeconds).forEach(p => {
             const elapsed = p.onCourt ? Math.floor((Date.now() - p.startTime) / 1000) : 0;
@@ -268,13 +337,12 @@
     }
 
     function copyStats() {
-        let text = "Game Stats:\n";
+        let text = "Chargers C Stats:\n";
         [...players].sort((a,b) => b.totalSeconds - a.totalSeconds).forEach(p => {
             const elapsed = p.onCourt ? Math.floor((Date.now() - p.startTime) / 1000) : 0;
             text += `${p.name}: ${formatTime(p.totalSeconds + elapsed)} (${p.shifts} shifts)\n`;
         });
         navigator.clipboard.writeText(text);
-        alert("Stats copied!");
     }
 
     function toggleAvailability(id) {
@@ -298,9 +366,9 @@
     function formatTime(sec) { const m = Math.floor(sec / 60); const s = sec % 60; return `${m}:${s.toString().padStart(2, '0')}`; }
     
     function resetStats() { 
-        if(confirm("Clear game data?")) { 
+        if(confirm("Reset game?")) { 
             players.forEach(p => { p.onCourt = false; p.pendingStatus = false; p.totalSeconds = 0; p.shifts = 0; p.startTime = null; p.secondsSat = 0; }); 
-            totalGameSeconds = 0; shiftTimerRunning = false; resetShiftTimer(); render(); 
+            totalGameSeconds = 0; shiftTimerRunning = false; gameStarted = false; resetShiftTimer(); render(); 
         } 
     }
 
